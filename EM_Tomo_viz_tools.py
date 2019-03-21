@@ -6,13 +6,11 @@ Created on Thu Feb 21 21:34:05 2019
 """
 
 import pandas as pd
-from fiona.ogrext import Iterator, ItemsIterator, KeysIterator
-import fiona
+#import fiona
 import geopandas as gpd
-#import geopandas as gpd
 import numpy as np
 from shapely.geometry import Point
-import shapely
+#import shapely
 import math
 import os
 
