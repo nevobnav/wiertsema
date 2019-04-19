@@ -300,29 +300,25 @@ class Window2:
     def process2(self):
         input_file2 = self.filename2
         output_file2 = self.output_filename2
-        if isinstance(input_file2, str) == True & isinstance(output_file2, str) == True:
-            if len(input_file2) > 4 & len(output_file2) > 4:             
-                if len(criteria) < 1:
-                    messagebox.showinfo("Report", "No criteria specified, operation aborted")
-                    return
-                self.succesmsg3.set("Running program....")
-                self.status_msg3.set("Running program...")
-                page2.update()
-                try:
-                    self.final_msg3.set(str(create_filtered_layer(input_file2, output_file2, criteria)))
-                except:
-                    messagebox.showinfo("Report", "Something went wrong, contact the authors if it keeps happening")               
-                self.succesmsg3.set("Finished!")
-                self.status_msg3.set("Idle...")
-                page2.update()
-                print(self.final_msg3.get())
-                messagebox.showinfo("Result", str(self.final_msg3.get()))
-                criteria.clear()
-                self.status_msg2.set('Total number of criteria defined = '+str(len(criteria)))
-                messagebox.showinfo("Report", "Something went wrong, contact the authors if it keeps happening")
-            else:    
-                messagebox.showinfo("Report", "Please specify input and output file with the browse button")  
+        if isinstance(input_file2, str) == True & isinstance(output_file2, str) == True:           
+            if len(criteria) < 1:
+                messagebox.showinfo("Report", "No criteria specified, operation aborted")
                 return
+            self.succesmsg3.set("Running program....")
+            self.status_msg3.set("Running program...")
+            page2.update()
+            try:
+                self.final_msg3.set(str(create_filtered_layer(input_file2, output_file2, criteria)))
+            except:
+                messagebox.showinfo("Report", "Something went wrong, contact the authors if it keeps happening")               
+            self.succesmsg3.set("Finished!")
+            self.status_msg3.set("Idle...")
+            page2.update()
+            print(self.final_msg3.get())
+            messagebox.showinfo("Result", str(self.final_msg3.get()))
+            criteria.clear()
+            self.status_msg2.set('Total number of criteria defined = '+str(len(criteria)))
+            messagebox.showinfo("Report", "Something went wrong, contact the authors if it keeps happening")
         else:    
             messagebox.showinfo("Report", "Please specify input and output file with the browse button")  
             return  
