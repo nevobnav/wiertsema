@@ -14,6 +14,62 @@ from shapely.geometry import Point
 import math
 import os
 
+crs = {'init': 'epsg:4326'}
+
+def read_shapefile(input_file):
+    try:
+        gdf = gpd.read_file(input_file)
+    except:
+        output = "Something wrong with the shapefile"
+        return output  
+    return gdf
+    
+def filter_data(criteria, gdf):
+    filter_result_list = []
+    ec_greater = -9999
+    ec_smaller = 99999
+    elev_greater = -9999
+    elev_smaller = 99999
+    for criterium in criteria:
+        if '' in criterium:
+            for i, crit in enumerate(criterium):
+                if (i == 0) and (crit != ''):
+                    try:
+                        ec_greater = float(crit)
+                    except:
+                        output = "Input is not a valid number"
+                        return output
+                if (i == 1) and (crit != ''):
+                    try:
+                        ec_smaller = float(crit)
+                    except:
+                        output = "Input is not a valid number"
+                        return output
+                if (i == 2) and (crit != ''):
+                    try:
+                        elev_greater = float(crit)
+                    except:
+                        output = "Input is not a valid number"
+                        return output
+                if (i == 3) and (crit != ''):
+                    try:
+                        elev_smaller = float(crit)
+                    except:
+                        output = "Input is not a valid number"   
+                        return output
+        else:
+            ec_greater, ec_smaller, elev_greater, elev_smaller = criterium
+        try:
+            subset = gdf[(gdf['EC'] > ec_greater) & (gdf['EC'] < ec_smaller) & (gdf['elev_boven'] > elev_greater) & (gdf['elev_boven'] < elev_smaller)]
+        except:
+            output = "EC or elev column not present or renamed, please make sure the shapefile matches the right format"
+            return output
+        filter_result_list.append(subset)       
+    for subset in filter_result_list:
+        filtered_df = gpd.GeoDataFrame(pd.concat(filter_result_list))#drop_duplicates(), crs = crs)#.reset_index(drop=True)
+        filtered_df = filtered_df[filtered_df.index.duplicated(keep = 'first') == False]
+    return filtered_df
+
 def Read2DCSV(input_file):
     try:
         #read values
@@ -185,7 +241,7 @@ def Processing_2D(input_files, output_file, reduce, params):
                         df = ReduceData(df, EC_min, EC_max, resolution, data_reduction_factor)
                     gdf = CreateGeodf(df)
                     WriteGDF2Shp(gdf, output_file)
-                    output_msg = "succes!"
+                    output_msg = "Succes!"
         else:
             input_files = str(input_files[0])
             df = Read2DCSV(input_files)
@@ -205,7 +261,7 @@ def Processing_2D(input_files, output_file, reduce, params):
                         df = ReduceData(df, EC_min, EC_max, resolution, data_reduction_factor)
                     gdf = CreateGeodf(df)
                     WriteGDF2Shp(gdf, output_file)
-                    output_msg = "succes!"
+                    output_msg = "Succes!"
         return output_msg
     except:
         output_msg = "Encountered error, please review settings and try again. If this error remains contact Kaz or Eric"#, please send "+ os.path.dirname(RAW_files[0]) + "/log.txt " +" to kaz.vermeer@watermappers.com."
@@ -233,7 +289,7 @@ def Processing_3D(input_files, output_file, reduce, params):
                         df = ReduceData(df, EC_min, EC_max, resolution, data_reduction_factor)
                     gdf = CreateGeodf(df)
                     WriteGDF2Shp(gdf, output_file)
-                    output_msg = "succes!"
+                    output_msg = "Succes!"
         else:
             input_files = str(input_files[0])
             df = Read3DCSV(input_files)            
@@ -254,9 +310,25 @@ def Processing_3D(input_files, output_file, reduce, params):
                         df = ReduceData(df, EC_min, EC_max, resolution, data_reduction_factor)
                     gdf = CreateGeodf(df)
                     WriteGDF2Shp(gdf, output_file)
-                    output_msg = "succes!"
+                    output_msg = "Succes!"
         return output_msg
     except:
         output_msg = "Encountered error, please review settings and try again. If this error remains contact Kaz or Eric"#, please send "+ os.path.dirname(RAW_files[0]) + "/log.txt " +" to kaz.vermeer@watermappers.com."
         return output_msg
+    
+def create_filtered_layer(input_file2, output_file2, criteria):
+    gdf = read_shapefile(input_file2)
+    if isinstance(gdf, str):
+        return gdf
+    else:
+        filtered_df = filter_data(criteria, gdf)
+    if isinstance(filtered_df, str):
+        return filtered_df
+    else:
+        WriteGDF2Shp(filtered_df, output_file2)
+        output_msg = "Succes!"
+        return  output_msg
+    
+        
+
 
