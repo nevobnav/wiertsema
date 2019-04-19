@@ -318,7 +318,6 @@ class Window2:
             messagebox.showinfo("Result", str(self.final_msg3.get()))
             criteria.clear()
             self.status_msg2.set('Total number of criteria defined = '+str(len(criteria)))
-            messagebox.showinfo("Report", "Something went wrong, contact the authors if it keeps happening")
         else:    
             messagebox.showinfo("Report", "Please specify input and output file with the browse button")  
             return  
