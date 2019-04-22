@@ -13,14 +13,28 @@ from shapely.geometry import Point
 #import shapely
 import math
 import os
+from collections import OrderedDict
 
-crs = {'init': 'epsg:4326'}
+crs = {'init': 'epsg:32631'}
+
+output_schema = {'properties': OrderedDict([('Punt_ID', 'str:80'),
+              ('X', 'float:24.6'),
+              ('Y', 'float:24.6'),
+              ('Topo', 'float:24.2'),
+              ('dist', 'float:24.2'),
+              ('elev_onder', 'float:24.2'),
+              ('EC', 'float:24.2'),
+              ('rho', 'float:24.2'),
+              ('Dikte', 'float:24.2'),
+              ('elev_boven', 'float:24.2'),
+              ('ID', 'int:18')]),
+                'geometry': 'Point'}
 
 def read_shapefile(input_file):
     try:
         gdf = gpd.read_file(input_file)
     except:
-        output = "Something wrong with the shapefile"
+        output = "Something wrong with reading of the shapefile"
         return output  
     return gdf
     
@@ -64,10 +78,13 @@ def filter_data(criteria, gdf):
         except:
             output = "EC or elev column not present or renamed, please make sure the shapefile matches the right format"
             return output
-        filter_result_list.append(subset)       
-    for subset in filter_result_list:
-        filtered_df = gpd.GeoDataFrame(pd.concat(filter_result_list))#drop_duplicates(), crs = crs)#.reset_index(drop=True)
-        filtered_df = filtered_df[filtered_df.index.duplicated(keep = 'first') == False]
+        filter_result_list.append(subset)
+        ec_greater = -9999
+        ec_smaller = 99999
+        elev_greater = -9999
+        elev_smaller = 99999
+    filtered_df = gpd.GeoDataFrame(pd.concat(filter_result_list), crs = crs)    
+    filtered_df = filtered_df[filtered_df.index.duplicated(keep = 'first') == False]
     return filtered_df
 
 def Read2DCSV(input_file):
@@ -119,7 +136,7 @@ def CreateMasterSheet3D(df):
             ec = 'EcLayer' + str(i)
             temp = df[['Punt_ID','X', 'Y', 'Elev', str(elev), str(ec)]]
             temp.columns = ['Punt_ID','X', 'Y', 'Topo', 'elev', 'EC']
-            master_sheet = pd.merge(master_sheet, temp, how = 'outer')        
+            master_sheet = pd.merge(master_sheet, temp, how = 'outer')     
         return master_sheet
     except:
         output = "CSV file does not matches the standard 3D csv layout"
@@ -140,6 +157,7 @@ def CreateMasterSheet2D(df):
             temp = df[['Punt_ID','X', 'Y', 'Lat', 'Long', 'Topo', 'dist', str(elev), str(ec), str(rho)]]
             temp.columns = ['Punt_ID','X', 'Y', 'Lat', 'Long', 'Topo', 'dist', 'elev', 'EC', 'rho']
             master_sheet = pd.merge(master_sheet, temp, how = 'outer')
+        master_sheet = master_sheet.drop(['Lat', 'Long'], axis = 1)
         return master_sheet        
     except:
         output = "CSV file does not matches the standard 2D csv layout"
@@ -217,7 +235,10 @@ def CreateGeodf(master_sheet):
 
 def WriteGDF2Shp(gdf, output_file):   
     #write files to disk
-    gdf.to_file(driver = 'ESRI Shapefile', filename = output_file )
+    #extra check:
+    if 'Lat' in gdf.columns:
+        gdf = gdf.drop(['Lat', 'Long'], axis = 1)
+    gdf.to_file(driver = 'ESRI Shapefile', filename = output_file, schema = output_schema)
     
 def Processing_2D(input_files, output_file, reduce, params):
     try:
@@ -319,16 +340,21 @@ def Processing_3D(input_files, output_file, reduce, params):
 def create_filtered_layer(input_file2, output_file2, criteria):
     gdf = read_shapefile(input_file2)
     if isinstance(gdf, str):
-        return gdf
+        output_msg = 'Error reading shapefile'
+        return output_msg
     else:
         filtered_df = filter_data(criteria, gdf)
     if isinstance(filtered_df, str):
-        return filtered_df
+        output_msg = 'Error with filtering shapefile based on selection criteria'
+        return output_msg
     else:
-        WriteGDF2Shp(filtered_df, output_file2)
-        output_msg = "Succes!"
-        return  output_msg
-    
+        try:
+            WriteGDF2Shp(filtered_df, output_file2)
+            output_msg = "Succes!"
+            return  output_msg
+        except:
+            output_msg = 'Error writing shapefile to disk'
+            return output_msg
         
 
 
