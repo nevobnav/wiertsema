@@ -17,18 +17,21 @@ from collections import OrderedDict
 
 crs = {'init': 'epsg:32631'}
 
-output_schema = {'properties': OrderedDict([('Punt_ID', 'str:80'),
-              ('X', 'float:24.6'),
-              ('Y', 'float:24.6'),
-              ('Topo', 'float:24.2'),
-              ('dist', 'float:24.2'),
-              ('elev_onder', 'float:24.2'),
-              ('EC', 'float:24.2'),
-              ('rho', 'float:24.2'),
-              ('Dikte', 'float:24.2'),
-              ('elev_boven', 'float:24.2'),
-              ('ID', 'int:18')]),
-                'geometry': 'Point'}
+#defining an output schema is a nice addition to the tool but for now it is too much work because there are differences between 2D, 3D and simplified df's.
+# =============================================================================
+# output_schema = {'properties': OrderedDict([('Punt_ID', 'str:80'),
+#               ('X', 'float:24.6'),
+#               ('Y', 'float:24.6'),
+#               ('Topo', 'float:24.2'),
+#               ('dist', 'float:24.2'),
+#               ('elev_onder', 'float:24.2'),
+#               ('EC', 'float:24.2'),
+#               ('rho', 'float:24.2'),
+#               ('Dikte', 'float:24.2'),
+#               ('elev_boven', 'float:24.2'),
+#               ('ID', 'int:18')]),
+#                 'geometry': 'Point'}
+# =============================================================================
 
 def read_shapefile(input_file):
     try:
@@ -170,8 +173,8 @@ def GetLaagDikte(master_sheet):
     temp['Dikte'] = func.values
     master_sheet = pd.merge(master_sheet, temp, how = 'outer', left_index = True, right_index = True)
     master_sheet['Dikte'] = master_sheet['Dikte'].fillna(value = master_sheet['Topo'] - master_sheet['elev'])
-    master_sheet.rename(columns = {'elev':'elev_onderkant'}, inplace = True)
-    master_sheet['elev_bovenkant'] = master_sheet['elev_onderkant'] + master_sheet['Dikte']
+    master_sheet.rename(columns = {'elev':'elev_onder'}, inplace = True)
+    master_sheet['elev_boven'] = master_sheet['elev_onder'] + master_sheet['Dikte']
     return master_sheet    
 
 def ReduceData(master_sheet, ondergrens, bovengrens, resolutie, reduction_factor):
@@ -194,12 +197,12 @@ def ReduceData(master_sheet, ondergrens, bovengrens, resolutie, reduction_factor
     groups = master_sheet.groupby(['Punt_ID', 'groups'])
     
     #calculate avg values for aggregated data and put in new df
-    simplified_df = pd.DataFrame(columns = ['Punt_ID','X', 'Y', 'Topo', 'elev_bovenkant', 'EC', 'EC_diff', 'Dikte'])
+    simplified_df = pd.DataFrame(columns = ['Punt_ID','X', 'Y', 'Topo', 'elev_boven', 'EC', 'EC_diff', 'Dikte'])
     simplified_df.Punt_ID = groups.Punt_ID.first()
     simplified_df.X = groups.X.max()
     simplified_df.Y = groups.Y.max()
     simplified_df.Topo = groups.Topo.max()
-    simplified_df.elev_bovenkant = groups.elev_bovenkant.max()
+    simplified_df.elev_boven = groups.elev_boven.max()
     simplified_df.EC = groups.EC.mean()
     simplified_df.EC_diff = groups.EC_diff.mean()
     simplified_df.Dikte = groups.Dikte.sum()*-1
@@ -223,22 +226,23 @@ def ReduceData(master_sheet, ondergrens, bovengrens, resolutie, reduction_factor
         simplified_df = simplified_df.drop(temp)
     return simplified_df    
 
-def CreateGeodf(master_sheet):
+def CreateGeodf(master_sheet, crs = crs):
     #create geodataframe
     master_sheet['Coordinates'] = list(zip(master_sheet.X, master_sheet.Y))
     master_sheet['Coordinates'] = master_sheet['Coordinates'].apply(Point)
     #Mogelijk optie inbouwen om crs te kunnen kiezen
-    gdf = gpd.GeoDataFrame(master_sheet, geometry = 'Coordinates', crs = {'init': 'epsg:32631'})
+    gdf = gpd.GeoDataFrame(master_sheet, geometry = 'Coordinates', crs = crs)
     #create ID column for filtering in qgis
     gdf['ID'] = range(0, len(gdf))
     return gdf
 
-def WriteGDF2Shp(gdf, output_file):   
+def WriteGDF2Shp(gdf, output_file, crs = crs):   
     #write files to disk
     #extra check:
     if 'Lat' in gdf.columns:
         gdf = gdf.drop(['Lat', 'Long'], axis = 1)
-    gdf.to_file(driver = 'ESRI Shapefile', filename = output_file, schema = output_schema)
+    gdf.crs = crs
+    gdf.to_file(driver = 'ESRI Shapefile', filename = output_file)
     
 def Processing_2D(input_files, output_file, reduce, params):
     try:
