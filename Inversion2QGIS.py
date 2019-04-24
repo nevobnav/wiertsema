@@ -334,7 +334,7 @@ style.configure('test.TNotebook', background = 'light grey')
 style.configure('newstyle.TFrame', background = 'light grey')
 
 #root.geometry('500x500')
-root.title("Inversion data convertor v1.0")    
+root.title("Inversion data convertor v2.0")    
 root.lift()
 root.configure(background = "white")
 #window = Window(root)

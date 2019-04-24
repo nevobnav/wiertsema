@@ -76,6 +76,10 @@ def filter_data(criteria, gdf):
                         return output
         else:
             ec_greater, ec_smaller, elev_greater, elev_smaller = criterium
+            ec_greater = float(ec_greater)
+            ec_smaller = float(ec_smaller)
+            elev_greater = float(elev_greater)
+            elev_smaller = float(elev_smaller)
         try:
             subset = gdf[(gdf['EC'] > ec_greater) & (gdf['EC'] < ec_smaller) & (gdf['elev_boven'] > elev_greater) & (gdf['elev_boven'] < elev_smaller)]
         except:
