@@ -283,7 +283,7 @@ class Window2:
                         try:
                             float(i)
                         except:
-                            messagebox.showinfo("Report", "Criteria input is not a valid number, please use numbers only")
+                            messagebox.showinfo("Report", "Input is not a valid number, please use numbers with . as decimal separator")
                             criteria.remove(crit)
                             self.status_msg2.set('Total number of criteria defined = '+str(len(criteria))) 
                             break   

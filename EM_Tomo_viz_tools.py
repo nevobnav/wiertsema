@@ -54,25 +54,25 @@ def filter_data(criteria, gdf):
                     try:
                         ec_greater = float(crit)
                     except:
-                        output = "Input is not a valid number"
+                        output = "Input is not a valid number, please use numbers with . as decimal separator"
                         return output
                 if (i == 1) and (crit != ''):
                     try:
                         ec_smaller = float(crit)
                     except:
-                        output = "Input is not a valid number"
+                        output = "Input is not a valid number, please use numbers with . as decimal separator"
                         return output
                 if (i == 2) and (crit != ''):
                     try:
                         elev_greater = float(crit)
                     except:
-                        output = "Input is not a valid number"
+                        output = "Input is not a valid number, please use numbers with . as decimal separator"
                         return output
                 if (i == 3) and (crit != ''):
                     try:
                         elev_smaller = float(crit)
                     except:
-                        output = "Input is not a valid number"   
+                        output = "Input is not a valid number, please use numbers with . as decimal separator"
                         return output
         else:
             ec_greater, ec_smaller, elev_greater, elev_smaller = criterium
@@ -92,6 +92,9 @@ def filter_data(criteria, gdf):
         elev_smaller = 99999
     filtered_df = gpd.GeoDataFrame(pd.concat(filter_result_list), crs = crs)    
     filtered_df = filtered_df[filtered_df.index.duplicated(keep = 'first') == False]
+    if len(filtered_df) < 1:
+        output = "no records match specified selection criteria"
+        return output
     return filtered_df
 
 def Read2DCSV(input_file):
@@ -353,7 +356,10 @@ def create_filtered_layer(input_file2, output_file2, criteria):
     else:
         filtered_df = filter_data(criteria, gdf)
     if isinstance(filtered_df, str):
-        output_msg = 'Error with filtering shapefile based on selection criteria'
+        if filtered_df != "no records match specified selection criteria":
+            output_msg = 'Error with filtering shapefile based on selection criteria'
+        else:
+            output_msg = filtered_df
         return output_msg
     else:
         try:
