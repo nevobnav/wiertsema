@@ -376,99 +376,104 @@ def create_filtered_layer(input_file2, output_file2, criteria):
 
 
 def create_cross_section(window,input_file, output_folder, elevations, grid_size = 0):
-    #Read shapefile to gdf
-    gdf = read_shapefile(input_file)
-    if isinstance(gdf,str):
-        output_msg = "Error reading shapefile"
+    try:
+        #Read shapefile to gdf
+        gdf = read_shapefile(input_file)
+        if isinstance(gdf,str):
+            output_msg = "Error reading shapefile"
+            return output_msg
+
+
+        #set no data value
+        no_data_value = float('Nan')
+
+        #Register number of shapefiles that turn out empty
+        results = []
+
+        #get original filename for use in saving output
+        original_filename = os.path.basename(os.path.splitext(input_file)[0])
+
+        #Determine the top and bottom elevation
+
+        elevations = np.unique(elevations)
+        for elevation in elevations:
+            window.status_msg.set('Creating XY grid at {}m...'.format(str(elevation)))
+            #Filter for the right depth and create new GDF with 'Meetlocatie' ID as index
+            gdf_filtered = gdf[(gdf.elev_boven> elevation) & (gdf.elev_onder <= elevation)]
+            if len(gdf_filtered) == 0:
+                print('broken out at '+str(elevation))
+                results.append({'elevation':elevation,'succes':'No values found'})
+                continue
+            gdf_filtered['Punt_ID_num'] = gdf_filtered.Punt_ID.apply(lambda x: int(x[x.find('_')+1::]))
+            gdf_filtered.sort_values('Punt_ID_num', inplace=True)
+            gdf_filtered.set_index('Punt_ID_num', drop=True, inplace=True)
+            gdf_filtered.drop('Punt_ID',1,inplace=True)
+
+            #Render grid at automatically rendered grid size
+            grid = create_grid_from_gdf(gdf_filtered, grid_size = grid_size)
+            #Join raster with measurement points to find out which points are present in every raster element
+            joined_raster_data = gpd.sjoin(grid,gdf_filtered, how="left")
+
+            #Create GPD
+            grid_data = gpd.GeoDataFrame()
+            #Fill columns of grid_data gpd
+            grid_data['geometry'] = grid.geometry
+            #Create list of measurement point IDs present in each raster element
+            grid_data['IDs'] = joined_raster_data.groupby(joined_raster_data.index).index_right.apply(list)
+            grid_data['has_data'] = grid_data.IDs.apply(lambda x: x[0] == x[0])
+            grid_data['EC'] = no_data_value #Set EC data to default no-data value
+            grid_data['elevation'] = elevation
+            grid_data.crs = gdf_filtered.crs #Pass over CRS from gdf_filtered
+
+            active_grid_data = grid_data[grid_data.has_data]
+
+            #Determine EC value for each grid element
+            for ii in range(1,len(active_grid_data)):
+                grid_element_data = active_grid_data.iloc[ii]  #select data from this specific grid element
+                if grid_element_data.has_data:
+                    id_list = grid_element_data.IDs
+                    #Get all measurements within the square
+                    this_square_df =gdf_filtered[gdf_filtered.index.isin(id_list)]
+                    #determine location of centroid of grid element
+                    centroid = grid_element_data.geometry.centroid
+                    #Determine distance (and inverse) to centroid
+                    this_square_df['dist_to_centroid'] = this_square_df.geometry.distance(centroid)
+                    this_square_df['closeness'] = 1/this_square_df.dist_to_centroid
+                    #take weighted average of EC with respect to closeness to centroid.
+                    #The closer the higher its weighted in a linear fashion.
+                    this_square_df['weighted_EC'] = this_square_df.EC * this_square_df.closeness
+                    weighted_avg_EC = this_square_df.weighted_EC.sum()/this_square_df.closeness.sum()
+                    #Update EC value in grid_data gpd
+                    active_grid_data.loc[active_grid_data.index[ii],'EC'] = weighted_avg_EC
+
+            #Generate output
+            output = active_grid_data[['geometry','EC','elevation']] #Only create output if the element has data.
+            output.crs = gdf_filtered.crs   #give correct CRS
+            elevation_cm_string= str(abs(int(elevation*100)))
+            filename = original_filename + '_XYgrid_' + elevation_cm_string + '.shp'
+            output_file = os.path.join(output_folder, filename)
+            window.status_msg.set('Writing XY grid at {}m...)'.format(str(elevation)))
+            output.to_file(driver = 'ESRI Shapefile', filename = output_file) #Create shapefile
+            results.append({'elevation':elevation,'succes':'Executed succesfully'})
+
+        output_msg = 'Finished! Results:\n'
+
+
+        for i in range(len(elevations)):
+            dict = results[i]
+            line  = "Elevation {}m: {} \n".format(dict['elevation'], str(dict['succes']))
+            output_msg = output_msg+line
+
+        # output_msg = "Succesfully generated {} out of {} shape files".format(succes,len(elevations))
+
+        # except:
+        #     output_msg = "Error occured whilst generating XY grids."
+
         return output_msg
 
-    # try:
-    #set no data value
-    no_data_value = float('Nan')
-
-    #Register number of shapefiles that turn out empty
-    results = []
-
-    #get original filename for use in saving output
-    original_filename = os.path.basename(os.path.splitext(input_file)[0])
-
-    #Determine the top and bottom elevation
-
-    elevations = np.unique(elevations)
-    for elevation in elevations:
-        window.status_msg.set('Creating XY grid at {}m...'.format(str(elevation)))
-        #Filter for the right depth and create new GDF with 'Meetlocatie' ID as index
-        gdf_filtered = gdf[(gdf.elev_boven> elevation) & (gdf.elev_onder <= elevation)]
-        if len(gdf_filtered) == 0:
-            print('broken out at '+str(elevation))
-            results.append({'elevation':elevation,'succes':'No values found'})
-            continue
-        gdf_filtered['Punt_ID_num'] = gdf_filtered.Punt_ID.apply(lambda x: int(x[x.find('_')+1::]))
-        gdf_filtered.sort_values('Punt_ID_num', inplace=True)
-        gdf_filtered.set_index('Punt_ID_num', drop=True, inplace=True)
-        gdf_filtered.drop('Punt_ID',1,inplace=True)
-
-        #Render grid at automatically rendered grid size
-        grid = create_grid_from_gdf(gdf_filtered, grid_size = grid_size)
-        #Join raster with measurement points to find out which points are present in every raster element
-        joined_raster_data = gpd.sjoin(grid,gdf_filtered, how="left")
-
-        #Create GPD
-        grid_data = gpd.GeoDataFrame()
-        #Fill columns of grid_data gpd
-        grid_data['geometry'] = grid.geometry
-        #Create list of measurement point IDs present in each raster element
-        grid_data['IDs'] = joined_raster_data.groupby(joined_raster_data.index).index_right.apply(list)
-        grid_data['has_data'] = grid_data.IDs.apply(lambda x: x[0] == x[0])
-        grid_data['EC'] = no_data_value #Set EC data to default no-data value
-        grid_data['elevation'] = elevation
-        grid_data.crs = gdf_filtered.crs #Pass over CRS from gdf_filtered
-
-        active_grid_data = grid_data[grid_data.has_data]
-
-        #Determine EC value for each grid element
-        for ii in range(1,len(active_grid_data)):
-            grid_element_data = active_grid_data.iloc[ii]  #select data from this specific grid element
-            if grid_element_data.has_data:
-                id_list = grid_element_data.IDs
-                #Get all measurements within the square
-                this_square_df =gdf_filtered[gdf_filtered.index.isin(id_list)]
-                #determine location of centroid of grid element
-                centroid = grid_element_data.geometry.centroid
-                #Determine distance (and inverse) to centroid
-                this_square_df['dist_to_centroid'] = this_square_df.geometry.distance(centroid)
-                this_square_df['closeness'] = 1/this_square_df.dist_to_centroid
-                #take weighted average of EC with respect to closeness to centroid.
-                #The closer the higher its weighted in a linear fashion.
-                this_square_df['weighted_EC'] = this_square_df.EC * this_square_df.closeness
-                weighted_avg_EC = this_square_df.weighted_EC.sum()/this_square_df.closeness.sum()
-                #Update EC value in grid_data gpd
-                active_grid_data.loc[active_grid_data.index[ii],'EC'] = weighted_avg_EC
-
-        #Generate output
-        output = active_grid_data[['geometry','EC','elevation']] #Only create output if the element has data.
-        output.crs = gdf_filtered.crs   #give correct CRS
-        elevation_cm_string= str(abs(int(elevation*100)))
-        filename = original_filename + '_XYgrid_' + elevation_cm_string + '.shp'
-        output_file = os.path.join(output_folder, filename)
-        window.status_msg.set('Writing XY grid at {}m...)'.format(str(elevation)))
-        output.to_file(driver = 'ESRI Shapefile', filename = output_file) #Create shapefile
-        results.append({'elevation':elevation,'succes':'Executed succesfully'})
-
-    output_msg = 'Finished! Results:\n'
-
-
-    for i in range(len(elevations)):
-        dict = results[i]
-        line  = "Elevation {}m: {} \n".format(dict['elevation'], str(dict['succes']))
-        output_msg = output_msg+line
-
-    # output_msg = "Succesfully generated {} out of {} shape files".format(succes,len(elevations))
-
-    # except:
-    #     output_msg = "Error occured whilst generating XY grids."
-
-    return output_msg
+    except:
+        output_msg = "Error occurred, please try again. If error persists, contact VanBoven"
+        return output_msg
 
 
 def create_grid_from_gdf(gdf, grid_size = 0):
