@@ -495,7 +495,6 @@ window = Window1(page1)
 window2 = Window2(page2)
 window3 = Window3(page3)
 
-
-# imgicon = tk.PhotoImage(file = 'vbd_icon.ico')
-# root.tk.call('wm', 'iconphoto', root._w, imgicon)
+imgicon = tk.PhotoImage(file='logo.gif')
+root.tk.call('wm', 'iconphoto', root._w, imgicon)  
 root.mainloop()
