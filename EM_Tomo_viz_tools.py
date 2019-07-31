@@ -393,13 +393,12 @@ def create_cross_section(window,input_file, output_folder, elevations, grid_size
     original_filename = os.path.basename(os.path.splitext(input_file)[0])
 
     #Determine the top and bottom elevation
-    gdf['top'] = gdf.elev_boven
-    gdf['bottom'] = gdf.elev_boven+gdf.Dikte
+
 
     for elevation in elevations:
         window.status_msg.set('Creating XY grid at {}m...'.format(str(elevation)))
         #Filter for the right depth and create new GDF with 'Meetlocatie' ID as index
-        gdf_filtered = gdf[(gdf.top> elevation) & (gdf.bottom <= elevation)]
+        gdf_filtered = gdf[(gdf.elev_boven> elevation) & (gdf.elev_onder <= elevation)]
         if len(gdf_filtered) == 0:
             print('broken out at '+str(elevation))
             results.append({'elevation':elevation,'succes':'No values found'})
