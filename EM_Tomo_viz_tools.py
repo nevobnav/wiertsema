@@ -449,7 +449,7 @@ def create_cross_section(window,input_file, output_folder, elevations, grid_size
             #Generate output
             output = active_grid_data[['geometry','EC','elevation']] #Only create output if the element has data.
             output.crs = gdf_filtered.crs   #give correct CRS
-            elevation_cm_string= str(abs(int(elevation*100)))
+            elevation_cm_string= str(int(elevation*100))
             filename = original_filename + '_XYgrid_' + elevation_cm_string + '.shp'
             output_file = os.path.join(output_folder, filename)
             window.status_msg.set('Writing XY grid at {}m...)'.format(str(elevation)))
