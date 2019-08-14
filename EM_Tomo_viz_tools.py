@@ -428,7 +428,7 @@ def create_cross_section(window,input_file, output_folder, elevations, grid_size
             active_grid_data = grid_data[grid_data.has_data]
 
             #Determine EC value for each grid element
-            for ii in range(1,len(active_grid_data)):
+            for ii in range(0,len(active_grid_data)):
                 grid_element_data = active_grid_data.iloc[ii]  #select data from this specific grid element
                 if grid_element_data.has_data:
                     id_list = grid_element_data.IDs
@@ -484,6 +484,7 @@ def create_grid_from_gdf(gdf, grid_size = 0):
     if grid_size == 0:
         grid_size = base_grid_size
 
+    #Set limits to allowed grid sizes
     grid_size = max(grid_size, np.ceil(base_grid_size/10))
     grid_size = min(grid_size, np.ceil(base_grid_size * 10))
     grid_size = int(grid_size)

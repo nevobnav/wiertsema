@@ -50,6 +50,7 @@ def expand_GUI(master, self):
         self.EC_resolution_label.grid_remove()
         self.reduction_label.grid_remove()
 
+
 def is_float(x):
     try:
         x = float(x)
@@ -496,5 +497,5 @@ window2 = Window2(page2)
 window3 = Window3(page3)
 
 imgicon = tk.PhotoImage(file='logo.gif')
-root.tk.call('wm', 'iconphoto', root._w, imgicon)  
+root.tk.call('wm', 'iconphoto', root._w, imgicon)
 root.mainloop()
