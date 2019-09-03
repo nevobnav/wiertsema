@@ -296,7 +296,7 @@ def Processing_2D(input_files, output_file, reduce, params):
                     output_msg = "Succes!"
         return output_msg
     except:
-        output_msg = "Encountered error, please review settings and try again. If this error remains contact Kaz or Eric"#, please send "+ os.path.dirname(RAW_files[0]) + "/log.txt " +" to kaz.vermeer@watermappers.com."
+        output_msg = "Encountered error, please review settings and try again. If this error remains contact VanBoven."#, please send "+ os.path.dirname(RAW_files[0]) + "/log.txt " +" to kaz.vermeer@watermappers.com."
         return output_msg
 
 def Processing_3D(input_files, output_file, reduce, params):

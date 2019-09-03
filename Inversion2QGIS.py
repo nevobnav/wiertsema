@@ -4,6 +4,7 @@ Created on Mon Mar 11 21:54:12 2019
 @author: ericv
 """
 
+
 """
 Verbeter punten voor versie 1.1:
     1. Output folder vervangen voor output file(s)
@@ -12,6 +13,7 @@ Verbeter punten voor versie 1.1:
 
 """
 from EM_Tomo_viz_tools import *
+from GEF_reading_tools import *
 import tkinter as tk
 from tkinter import filedialog,messagebox, ttk
 import sys
@@ -455,6 +457,93 @@ class Window3:
         self.status_msg.set('Finished')
         elevations.clear()
 
+class Window4:
+    def __init__(self, master):
+        self.input_folderText = tk.StringVar()
+        self.output_fileText = tk.StringVar()
+        self.status_msg = tk.StringVar()
+        self.data_reduction = tk.DoubleVar()
+        self.data_reduction.set(10)
+        self.wild_var=tk.StringVar()
+
+        #Labels
+        input_folderLabel = tk.Label(master, text = "Select GEF folder location", bg="light grey").grid(row = 1, column = 0, sticky = tk.W)
+        outputLabel = tk.Label(master, text = "Output file", bg="light grey").grid(row = 2, column = 0, sticky = tk.W)
+        data_reductionLabel = tk.Label(master, text = "Data reduction factor", bg="light grey").grid(row = 4, column = 0, sticky = tk.W)
+
+        self.status_frame = tk.Frame(master)
+        self.status = tk.Label(self.status_frame, textvariable = self.status_msg, bg="white",bd = 1,relief=tk.SUNKEN, anchor=tk.W).pack(fill = "both", expand = True)
+        self.status_frame.grid(row=100, column=0, columnspan=7, sticky=tk.W+tk.E+tk.S)
+
+        #Buttons
+        # creating the buttons for browsing to files
+        self.browseButton = tk.Button(master, text = "Browse", command = self.browsefolder, bg = "light grey")
+        self.saveButton = tk.Button(master, text = "Browse", command = self.savefile, bg = "light grey")
+        # placing the button on my window
+        self.browseButton.grid(row = 1, column = 3, sticky = tk.E, padx=10, ipadx = 25)
+        self.saveButton.grid(row= 2, column = 3, sticky = tk.E, padx=10, ipadx = 25)
+
+        #Go button
+        self.goButton = tk.Button(master, text = "Go!", bg="light grey",foreground = 'black',command = self.process)
+        self.goButton.grid(row = 6, column = 3, ipadx = 35,sticky = tk.E, pady = 20)
+
+        #inputs
+        input_file_field = tk.Entry(master, textvariable = self.input_folderText).grid(row = 1, column = 1, padx=10)
+        output_file_field = tk.Entry(master, textvariable = self.output_fileText).grid(row = 2, column = 1, padx=10)
+        data_reduction_factor = tk.Entry(master, textvariable = self.data_reduction).grid(row = 4, column = 1, padx = 10)
+
+    def client_exit(self):
+        exit()
+
+    def savefile(self):
+        self.output_file = tk.filedialog.asksaveasfilename(initialdir = "~/", title = "Select .shp output", filetypes = (("shp files","*.shp"),("all files","*.*")))
+        self.output_fileText.set(self.output_file)
+
+    def browsefolder(self):
+        self.input_folder = tk.filedialog.askdirectory(initialdir = "~/", title = "Select output folder")
+        self.input_folderText.set(self.input_folder)
+
+
+    def process(self):
+        #TODO: Fix status barrr
+
+        input_folder = self.input_folderText.get()
+        output_file = self.output_fileText.get()
+        data_reduction_factor = self.data_reduction.get()
+
+        data_reduction_error_msg = "Reduction factor is invalid. Please enter number above or equal to 1"
+        try:
+            float(data_reduction_factor)
+            if data_reduction_factor<1:
+                messagebox.showinfo("Invalid input",data_reduction_error_msg)
+                self.data_reduction.set(10)
+                return
+        except:
+            messagebox.showinfo("Invalid input",data_reduction_error_msg)
+            self.data_reduction.set(10)
+            return
+
+
+
+
+        if input_folder == '' or output_file == '':
+            messagebox.showinfo("Report", "Please specify input and output using the browse buttons.")
+            return
+
+        logging = process_GEFs(input_folder, output_file, data_reduction_factor=data_reduction_factor)
+        if logging['success']:
+            if len(logging['reduction_warnings'])>0:
+                messagebox.showinfo("Warning", "Some files contained insufficient data points for data reduction: {}"
+                .format(logging['reduction_warnings']))
+            messagebox.showinfo("Finished", "Processed all {} GEF files.".format(logging['no_GEFs']))
+            self.status_msg.set('Finished')
+        else:
+            messagebox.showinfo("Error", "Exited with error, please review settings and try again. If error persists contact VanBoven.\
+             \n Error: {}".format(logging['error']))
+            self.status_msg.set('Error encountered')
+
+
+
 
 #main
 root = tk.Tk()
@@ -492,10 +581,14 @@ nb.add(page2, text = "Layer Selection")
 page3 = ttk.Frame(nb, style = 'newstyle.TFrame')
 nb.add(page3, text = "XY Plane")
 
+page4 = ttk.Frame(nb, style = 'newstyle.TFrame')
+nb.add(page4, text = "GEF Processing")
+
 window = Window1(page1)
 window2 = Window2(page2)
 window3 = Window3(page3)
+window4 = Window4(page4)
 
-imgicon = tk.PhotoImage(file='logo.gif')
-root.tk.call('wm', 'iconphoto', root._w, imgicon)
+# imgicon = tk.PhotoImage(file='logo.gif')
+# root.tk.call('wm', 'iconphoto', root._w, imgicon)
 root.mainloop()
