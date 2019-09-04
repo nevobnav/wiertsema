@@ -18,6 +18,7 @@ import tkinter as tk
 from tkinter import filedialog,messagebox, ttk
 import sys
 import base64
+import time
 
 
 #initiate layer dictionary
@@ -462,14 +463,15 @@ class Window4:
         self.input_folderText = tk.StringVar()
         self.output_fileText = tk.StringVar()
         self.status_msg = tk.StringVar()
-        self.data_reduction = tk.DoubleVar()
-        self.data_reduction.set(10)
+        self.no_classes = tk.DoubleVar()
+        self.no_classes.set(5)
         self.wild_var=tk.StringVar()
+        self.status_msg.set('Idle...')
 
         #Labels
         input_folderLabel = tk.Label(master, text = "Select GEF folder location", bg="light grey").grid(row = 1, column = 0, sticky = tk.W)
         outputLabel = tk.Label(master, text = "Output file", bg="light grey").grid(row = 2, column = 0, sticky = tk.W)
-        data_reductionLabel = tk.Label(master, text = "Data reduction factor", bg="light grey").grid(row = 4, column = 0, sticky = tk.W)
+        no_classesLabel = tk.Label(master, text = "Number of classes", bg="light grey").grid(row = 4, column = 0, sticky = tk.W)
 
         self.status_frame = tk.Frame(master)
         self.status = tk.Label(self.status_frame, textvariable = self.status_msg, bg="white",bd = 1,relief=tk.SUNKEN, anchor=tk.W).pack(fill = "both", expand = True)
@@ -490,7 +492,7 @@ class Window4:
         #inputs
         input_file_field = tk.Entry(master, textvariable = self.input_folderText).grid(row = 1, column = 1, padx=10)
         output_file_field = tk.Entry(master, textvariable = self.output_fileText).grid(row = 2, column = 1, padx=10)
-        data_reduction_factor = tk.Entry(master, textvariable = self.data_reduction).grid(row = 4, column = 1, padx = 10)
+        no_classes = tk.Entry(master, textvariable = self.no_classes).grid(row = 4, column = 1, padx = 10)
 
     def client_exit(self):
         exit()
@@ -505,45 +507,37 @@ class Window4:
 
 
     def process(self):
-        #TODO: Fix status barrr
 
-        input_folder = self.input_folderText.get()
-        output_file = self.output_fileText.get()
-        data_reduction_factor = self.data_reduction.get()
-
-        data_reduction_error_msg = "Reduction factor is invalid. Please enter number above or equal to 1"
+        classes_error_msg = "Number of classes invalid. Please enter an integer between 2 and 15"
         try:
-            float(data_reduction_factor)
-            if data_reduction_factor<1:
-                messagebox.showinfo("Invalid input",data_reduction_error_msg)
-                self.data_reduction.set(10)
+            input_folder = self.input_folderText.get()
+            output_file = self.output_fileText.get()
+            no_buckets = self.no_classes.get()
+            int(no_buckets)
+            if no_buckets<2 or no_buckets>15:
+                messagebox.showinfo("Invalid input",classes_error_msg)
+                self.no_classes.set(5)
                 return
         except:
-            messagebox.showinfo("Invalid input",data_reduction_error_msg)
-            self.data_reduction.set(10)
+            messagebox.showinfo("Invalid input",classes_error_msg)
+            self.no_classes.set(5)
             return
 
-
-
-
-        if input_folder == '' or output_file == '':
+        if input_folder == '' or output_file == '' or type(input_folder)!= str or type(output_file)!= str:
             messagebox.showinfo("Report", "Please specify input and output using the browse buttons.")
             return
 
-        logging = process_GEFs(input_folder, output_file, data_reduction_factor=data_reduction_factor)
+        self.status_msg.set('Processing...')
+        time.sleep(0.2)
+
+        logging = process_GEFs(input_folder, output_file, no_of_buckets = int(no_buckets))
         if logging['success']:
-            if len(logging['reduction_warnings'])>0:
-                messagebox.showinfo("Warning", "Some files contained insufficient data points for data reduction: {}"
-                .format(logging['reduction_warnings']))
             messagebox.showinfo("Finished", "Processed all {} GEF files.".format(logging['no_GEFs']))
             self.status_msg.set('Finished')
         else:
             messagebox.showinfo("Error", "Exited with error, please review settings and try again. If error persists contact VanBoven.\
              \n Error: {}".format(logging['error']))
             self.status_msg.set('Error encountered')
-
-
-
 
 #main
 root = tk.Tk()
