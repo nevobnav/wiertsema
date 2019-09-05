@@ -33,10 +33,10 @@ executables = [
     Executable('Inversion2QGIS.py', base=base)
 ]
 
-    
-setup(name='Inversion2QGIS',
+
+setup(name='Wiertsema Data Toolkit',
       version = '4.0',
-      description = 'Tool for converting EM_Tomo output 2 files compatible with qgis',
+      description = 'Toolkit for autmated processing of several filetypes',
       author = "Verhoeff, Vermeer, 2019",
       options = {"build_exe": build_exe_options},
       executables = executables)
