@@ -343,9 +343,6 @@ class Window3:
         self.autoGrid = tk.BooleanVar()
         self.autoGrid.set(True)
 
-
-        #Markup
-
         #Labels
         input_file_label = tk.Label(master, text = "Select input shape file", bg="light grey").grid(row = 1, column = 0, sticky = tk.W)
         output_label = tk.Label(master, text = "Output folder", bg="light grey").grid(row = 2, column = 0, sticky = tk.W)
@@ -387,7 +384,7 @@ class Window3:
         exit()
 
     def browsefile(self):
-        self.filename = tk.filedialog.askopenfilename(initialdir = "~/", title = "Select CSV file", filetypes = [("Shape files","*.shp")])
+        self.filename = tk.filedialog.askopenfilename(initialdir = "~/", title = "Select Shape file", filetypes = [("Shape files","*.shp")])
         self.filetext.set(self.filename)
 
     def browsefolder(self):
